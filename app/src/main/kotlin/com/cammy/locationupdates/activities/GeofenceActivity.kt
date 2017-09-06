@@ -1,4 +1,4 @@
-package com.cammy.locationupdates
+package com.cammy.locationupdates.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -15,6 +15,8 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.MenuItem
+import com.cammy.locationupdates.LocationPreferences
+import com.cammy.locationupdates.R
 import com.cammy.locationupdates.adapters.GeofenceListAdapter
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule

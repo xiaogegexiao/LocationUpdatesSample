@@ -1,4 +1,4 @@
-package com.cammy.locationupdates
+package com.cammy.locationupdates.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -13,6 +13,9 @@ import android.support.v4.app.NotificationCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.Toast
+import com.cammy.locationupdates.LocationPreferences
+import com.cammy.locationupdates.MainApplication
+import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
@@ -109,8 +112,8 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
             startActivity(intent)
         }
 
-        location_history.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
-        location_history.setOnClickListener { view ->
+        location_trigger.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
+        location_trigger.setOnClickListener { view ->
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -123,6 +126,11 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
                 requestConnectionWithGoogleAPI()
             }
         }
+
+        location_history.setOnClickListener({
+            val intent = Intent(this, LocationListActivity::class.java)
+            startActivity(intent)
+        })
     }
 
     fun askForFineLoactionPermission() {
@@ -171,7 +179,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
         mGoogleApiClient.unregisterConnectionFailedListener(this)
         mGoogleApiClient.disconnect()
         mInprogress = false
-        location_history.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
+        location_trigger.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
     }
 
     fun registerLocationUpdates() {
@@ -243,6 +251,8 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
             return mLocationListener
         }
         mLocationListener = LocationListener { location ->
+            mLocationPreferences.mLocationUpdateList.add(location)
+            mLocationPreferences.save()
             notifyGeofence(location)
             Log.d(TAG, "received location update " + location.latitude + ", " + location.longitude)
         }
