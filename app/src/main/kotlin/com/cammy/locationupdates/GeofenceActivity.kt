@@ -11,8 +11,10 @@ import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.MenuItem
+import com.cammy.locationupdates.adapters.GeofenceListAdapter
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
@@ -90,6 +92,8 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     private var mLastLocation: Location? = null
     private var mUseCurrentLocation: Boolean = true
     private var mGoogleApiClient: GoogleApiClient? = null
+    private var mLinearLayoutManager: LinearLayoutManager? = null
+    private var mGeofenceAdapter: GeofenceListAdapter? = null
 
     val component: AppComponent by lazy {
         DaggerAppComponent
@@ -101,7 +105,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         component.inject(this)
-        mGeofenceModelMap = mLocationPreferences?.mGeofenceModelMap
+        mGeofenceModelMap = mLocationPreferences.mGeofenceModelMap
         setContentView(R.layout.activity_geofence)
         if (mGoogleApiClient == null) {
             mGoogleApiClient = GoogleApiClient.Builder(this)
@@ -113,6 +117,12 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
 
         map_view.onCreate(savedInstanceState)
         setUpMapIfRequired()
+
+        mLinearLayoutManager = LinearLayoutManager(this)
+        mGeofenceAdapter = GeofenceListAdapter(this)
+        recyclerView.layoutManager = mLinearLayoutManager
+        recyclerView.adapter = mGeofenceAdapter
+        mGeofenceAdapter?.setItems(mLocationPreferences.mGeofenceModelMap?.values?.toList())
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

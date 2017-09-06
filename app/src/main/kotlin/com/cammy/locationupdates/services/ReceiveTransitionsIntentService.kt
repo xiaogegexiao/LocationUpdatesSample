@@ -9,6 +9,7 @@ import android.os.Build
 import android.support.v4.app.NotificationCompat
 import android.util.Log
 import com.cammy.locationupdates.LocationPreferences
+import com.cammy.locationupdates.MainApplication
 import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
@@ -26,7 +27,7 @@ import javax.inject.Inject
  * the event.
  */
 class ReceiveTransitionsIntentService : IntentService("ReceiveTransitionsIntentService") {
-    val MONITOR_GEOFENCE_PRESENCE = 1
+    val MONITOR_GEOFENCE_PRESENCE = 2
 
     val component: AppComponent by lazy {
         DaggerAppComponent.builder().appModule(AppModule(this)).build()
@@ -90,14 +91,14 @@ class ReceiveTransitionsIntentService : IntentService("ReceiveTransitionsIntentS
         //        df.setMaximumFractionDigits(2);
         //        msg.append(" - ").append(df.format(distance)).append(":").append(location.getAccuracy());
         val mBuilder =
-                    NotificationCompat.Builder(applicationContext,(if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) NotificationChannel.DEFAULT_CHANNEL_ID else "miscellaneous"))
+                    NotificationCompat.Builder(applicationContext, MainApplication.GEOFENCE_CHANNEL)
                             .setSmallIcon(R.drawable.ic_launcher)
                             .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
                             .setContentTitle(title.toUpperCase())
                             .setContentText(msg.toString())
 
         Log.d(Companion.TAG, msg.toString())
-        mNotificationManager.notify(MONITOR_GEOFENCE_PRESENCE, mBuilder.build())
+        mNotificationManager.notify(System.currentTimeMillis().toString(), MONITOR_GEOFENCE_PRESENCE, mBuilder.build())
     }
 
     companion object {

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">LocationUpdates</string>
+    <string name="notification_channel_geofence">Geofence Channel</string>
+    <string name="notification_channel_location_updates">Location updates channel</string>
 </resources>

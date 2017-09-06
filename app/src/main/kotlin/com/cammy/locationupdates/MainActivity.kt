@@ -2,17 +2,21 @@ package com.cammy.locationupdates
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.ActivityCompat
+import android.support.v4.app.NotificationCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.Toast
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
+import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.common.api.ResultCallback
@@ -66,6 +70,8 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
         private val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = UPDATE_INTERVAL_IN_MILLISECONDS / 5
 
         private val TAG = MainActivity::class.simpleName
+
+        val MONITOR_LOCATION_UPDATES = 1
     }
 
     val component: AppComponent by lazy {
@@ -80,6 +86,9 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
 
     @Inject
     lateinit var mGoogleApiClient: GoogleApiClient
+
+    @Inject
+    lateinit var mNotificationManager: NotificationManager
 
     private var mHandler = Handler()
     var mInprogress: Boolean = false
@@ -234,10 +243,22 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
             return mLocationListener
         }
         mLocationListener = LocationListener { location ->
-            location?.let {
-                Log.d(TAG, "received location update " + it.latitude + ", " + it.longitude)
-            }
+            notifyGeofence(location)
+            Log.d(TAG, "received location update " + location.latitude + ", " + location.longitude)
         }
         return mLocationListener
+    }
+
+    private fun notifyGeofence(location: Location) {
+        val title = "Location change"
+        val msg = "received location update " + location.latitude + ", " + location.longitude
+        val mBuilder =
+                NotificationCompat.Builder(applicationContext, MainApplication.LOCATION_UPDATE_CHANNEL)
+                        .setSmallIcon(R.drawable.ic_launcher)
+                        .setContentTitle(title.toUpperCase())
+                        .setContentText(msg)
+
+        Log.d(ReceiveTransitionsIntentService.TAG, msg)
+        mNotificationManager.notify(System.currentTimeMillis().toString(), MONITOR_LOCATION_UPDATES, mBuilder.build())
     }
 }
