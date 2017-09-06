@@ -70,10 +70,10 @@ class ReceiveTransitionsIntentService : IntentService("ReceiveTransitionsIntentS
                         mLocationPreferences.mGeofenceEventsMap?.let {
                             val geofencingEventList: MutableList<GeofenceEvent>
                             if (it.containsKey(geofence.requestId)) {
+                                geofencingEventList = it[geofence.requestId]!!
+                            } else {
                                 geofencingEventList = ArrayList()
                                 it.put(geofence.requestId, geofencingEventList)
-                            } else {
-                                geofencingEventList = it[geofence.requestId]!!
                             }
                             geofencingEventList.add(GeofenceEvent(event.geofenceTransition, event.triggeringLocation))
                         }
