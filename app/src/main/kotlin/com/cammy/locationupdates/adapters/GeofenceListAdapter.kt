@@ -5,7 +5,7 @@ import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.cammy.locationupdates.GeofenceModel
+import com.cammy.locationupdates.models.GeofenceModel
 import com.cammy.locationupdates.R
 import kotlinx.android.synthetic.main.list_item_geofence.view.*
 

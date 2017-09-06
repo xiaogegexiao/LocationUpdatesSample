@@ -1,11 +1,8 @@
 package com.cammy.locationupdates.services
 
 import android.app.IntentService
-import android.app.NotificationChannel
-import android.app.NotificationChannelGroup
 import android.app.NotificationManager
 import android.content.Intent
-import android.os.Build
 import android.support.v4.app.NotificationCompat
 import android.util.Log
 import com.cammy.locationupdates.LocationPreferences
@@ -14,9 +11,9 @@ import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
+import com.cammy.locationupdates.models.GeofenceEvent
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
-import java.util.*
 import javax.inject.Inject
 
 /**
@@ -69,10 +66,20 @@ class ReceiveTransitionsIntentService : IntentService("ReceiveTransitionsIntentS
             if (transition == Geofence.GEOFENCE_TRANSITION_ENTER || transition == Geofence.GEOFENCE_TRANSITION_EXIT) {
                 val geofences = event.triggeringGeofences
                 if (geofences.size > 0) {
-                    val geofenceEventList = ArrayList<Long>()
                     for (geofence in geofences) {
+                        mLocationPreferences.mGeofenceEventsMap?.let {
+                            val geofencingEventList: MutableList<GeofenceEvent>
+                            if (it.containsKey(geofence.requestId)) {
+                                geofencingEventList = ArrayList()
+                                it.put(geofence.requestId, geofencingEventList)
+                            } else {
+                                geofencingEventList = it[geofence.requestId]!!
+                            }
+                            geofencingEventList.add(GeofenceEvent(event.geofenceTransition, event.triggeringLocation))
+                        }
                         notifyGeofence(geofence, transition)
                     }
+                    mLocationPreferences.save()
                 }
             }
         }

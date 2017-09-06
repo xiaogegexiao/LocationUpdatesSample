@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.location.Address
 import android.location.Geocoder
 import android.location.Location
@@ -20,6 +21,7 @@ import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
 import com.cammy.locationupdates.fragments.AlertEditTextDialogFragment
 import com.cammy.locationupdates.geofence.GeofenceRequester
+import com.cammy.locationupdates.models.GeofenceModel
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.location.LocationServices
@@ -34,6 +36,7 @@ import kotlinx.android.synthetic.main.activity_geofence.*
 import java.io.IOException
 import java.util.*
 import javax.inject.Inject
+import kotlin.collections.HashMap
 
 
 /**
@@ -44,7 +47,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         val cameraPosition = mMap?.cameraPosition
 
 //        mFenceMarker.setPosition(cameraPosition.target);
-        mFenceCircle?.center = cameraPosition?.target
+        mCurrentFenceCircle?.center = cameraPosition?.target
     }
 
     override fun onConnected(p0: Bundle?) {
@@ -88,7 +91,8 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     private var mHandler = Handler()
     private var mAskingForPermission = false
     private var mMap: GoogleMap? = null
-    private var mFenceCircle: Circle? = null
+    private var mCurrentFenceCircle: Circle? = null
+    private var mExistingFenceCircleMap: MutableMap<String, Circle> = HashMap()
     private var mLastLocation: Location? = null
     private var mUseCurrentLocation: Boolean = true
     private var mGoogleApiClient: GoogleApiClient? = null
@@ -144,16 +148,18 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
                             when (i) {
                                 DialogInterface.BUTTON_POSITIVE -> {
                                     mMap?.let { googleMap ->
-                                        if (googleMap.cameraPosition != null) {
-                                            val geofenceName = inputLocationNameDialog.userInput.toString()
-                                            var geofenceModel = GeofenceModel()
-                                            geofenceModel.latitude = googleMap.cameraPosition.target.latitude
-                                            geofenceModel.longitude = googleMap.cameraPosition.target.longitude
-                                            geofenceModel.radius = mFenceCircle?.radius?.toLong()
-                                            geofenceModel.name = geofenceName
-                                            mGeofenceRequester.addGeofences(Arrays.asList(geofenceModel), Arrays.asList(geofenceModel))
-                                            mLocationPreferences.mGeofenceModelMap?.put(geofenceName, geofenceModel)
-                                            mLocationPreferences.save()
+                                        mCurrentFenceCircle?.let {
+                                            if (googleMap.cameraPosition != null) {
+                                                val geofenceName = inputLocationNameDialog.userInput.toString()
+                                                var geofenceModel = GeofenceModel()
+                                                geofenceModel.latitude = googleMap.cameraPosition.target.latitude
+                                                geofenceModel.longitude = googleMap.cameraPosition.target.longitude
+                                                geofenceModel.radius = it.radius.toLong()
+                                                geofenceModel.name = geofenceName
+                                                mGeofenceRequester.addGeofences(Arrays.asList(geofenceModel), Arrays.asList(geofenceModel))
+                                                mLocationPreferences.mGeofenceModelMap?.put(geofenceName, geofenceModel)
+                                                mLocationPreferences.save()
+                                            }
                                         }
                                     }
                                 }
@@ -194,8 +200,20 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
                     googleMap.isMyLocationEnabled = true
                     googleMap.setOnCameraMoveListener(this)
 
-                    if (/*mFenceMarker == null || */mFenceCircle == null) {
-                        createFenceMarker(mMap)
+                    if (mExistingFenceCircleMap.isEmpty()) {
+                        createExistingGeofecenMarker(mMap)
+                    }
+
+                    if (/*mFenceMarker == null || */mCurrentFenceCircle == null) {
+                        createCurrentFenceMarker(mMap)
+                    }
+
+                    if (mLastLocation == null) {
+                        mGoogleApiClient?.let {
+                            if (it.isConnected || it.isConnecting) {
+                                mLastLocation = LocationServices.FusedLocationApi.getLastLocation(it)
+                            }
+                        }
                     }
 
                     mLastLocation?.let { location ->
@@ -206,16 +224,35 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         }
     }
 
-    private fun createFenceMarker(map: GoogleMap?) {
+    private fun createExistingGeofecenMarker(map: GoogleMap?) {
+        map?.let { googleMap ->
+            googleMap.clear()
+            mExistingFenceCircleMap.clear()
+            mLocationPreferences.mGeofenceModelMap?.let {
+
+                for (model in it.values) {
+                    var circle = googleMap.addCircle(CircleOptions()
+                            .center(LatLng(model.latitude, model.longitude))
+                            .radius(model.radius.toDouble())
+                            .fillColor(0x40ff0000)
+                            .strokeColor(Color.RED)
+                            .strokeWidth(10f))
+                    mExistingFenceCircleMap.put(model.name, circle)
+                }
+            }
+        }
+    }
+
+    private fun createCurrentFenceMarker(map: GoogleMap?) {
         //  Instantiates a new CircleOptions object +  center/radius
         val radius = DEFAULT_RADIUS
 
         //  Get back the mutable Circle
-        mFenceCircle = map?.addCircle(CircleOptions()
+        mCurrentFenceCircle = map?.addCircle(CircleOptions()
                 .center(LatLng(map.cameraPosition.target.latitude, map.cameraPosition.target.longitude))
                 .radius(radius.toDouble())
                 .fillColor(0x40ff0000)
-                .strokeColor(resources.getColor(android.R.color.black))
+                .strokeColor(Color.BLACK)
                 .strokeWidth(10f))
     }
 
@@ -236,7 +273,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     }
 
     fun moveToLocation(geofence: GeofenceModel?, animated: Boolean) {
-        safeLet(mMap, mFenceCircle, geofence, geofence?.latitude, geofence?.longitude, geofence?.radius) { googleMap, circle, geofenceModel, latitude, longitude, radius ->
+        safeLet(mMap, mCurrentFenceCircle, geofence, geofence?.latitude, geofence?.longitude, geofence?.radius) { googleMap, circle, geofenceModel, latitude, longitude, radius ->
             run {
                 if (animated) {
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 16f))
@@ -249,7 +286,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         }
     }
 
-    private fun parseLatLngRadiusToGeofence(lat: Double?, lng: Double?, radius: Long?): GeofenceModel {
+    private fun parseLatLngRadiusToGeofence(lat: Double, lng: Double, radius: Long): GeofenceModel {
         val geofence = GeofenceModel()
         geofence.latitude = lat
         geofence.longitude = lng
@@ -261,7 +298,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         super.onDestroy()
         map_view.onDestroy()
         mMap = null
-        mFenceCircle = null
+        mCurrentFenceCircle = null
     }
 
     override fun onStart() {

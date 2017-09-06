@@ -2,10 +2,10 @@ package com.cammy.locationupdates
 
 import android.content.Context
 import android.preference.PreferenceManager
-import com.google.android.gms.location.GeofencingEvent
+import com.cammy.locationupdates.models.GeofenceEvent
+import com.cammy.locationupdates.models.GeofenceModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import org.json.JSONObject
 
 /**
  * Created by xiaomei on 4/9/17.
@@ -18,7 +18,7 @@ class LocationPreferences {
     private val PREF_LOCATION_EVENTS = "locationEvents"
 
     var mGeofenceModelMap: MutableMap<String, GeofenceModel>? = null
-    var mGeofenceEventsMap: MutableMap<String, List<GeofencingEvent>>? = null
+    var mGeofenceEventsMap: MutableMap<String, MutableList<GeofenceEvent>>? = null
     var mIsUpdatingLocations: Boolean = false
     private var mContext: Context? = null
     private var mGson: Gson? = null
@@ -33,22 +33,24 @@ class LocationPreferences {
         val edit = PreferenceManager.getDefaultSharedPreferences(mContext).edit()
         edit.putString(PREF_GEOFENCE_MODELS, geofenceModelMapToString(mGeofenceModelMap))
         edit.putBoolean(PREF_UPDATING_LOCATIONS, mIsUpdatingLocations)
+        edit.putString(PREF_GEOFENCE_EVENTS, geofencingEventMapToString(mGeofenceEventsMap))
         edit.apply()
     }
 
     fun load() {
         val pref = PreferenceManager.getDefaultSharedPreferences(mContext)
         mGeofenceModelMap = stringToGeofenceModelMap(pref.getString(PREF_GEOFENCE_MODELS, ""))
+        mGeofenceEventsMap = stringToGeofencingEventMap(pref.getString(PREF_GEOFENCE_EVENTS, ""))
         mIsUpdatingLocations = pref.getBoolean(PREF_UPDATING_LOCATIONS, false)
     }
 
-    private fun geofencingEventMapToString(geofencingEventMap: Map<String, List<GeofencingEvent>>?): String {
+    private fun geofencingEventMapToString(geofencingEventMap: Map<String, List<GeofenceEvent>>?): String {
         return mGson?.toJson(geofencingEventMap).toString()
     }
 
-    private fun stringToGeofencingEventMap(mapString: String?): MutableMap<String, List<GeofencingEvent>>? {
-        val type = object : TypeToken<MutableMap<String, List<GeofencingEvent>>>() {}.type
-        var myMap: MutableMap<String, List<GeofencingEvent>>? = mGson?.fromJson(mapString, type)
+    private fun stringToGeofencingEventMap(mapString: String?): MutableMap<String, MutableList<GeofenceEvent>>? {
+        val type = object : TypeToken<MutableMap<String, MutableList<GeofenceEvent>>>() {}.type
+        var myMap: MutableMap<String, MutableList<GeofenceEvent>>? = mGson?.fromJson(mapString, type)
         if (myMap == null) {
             myMap = HashMap()
         }
