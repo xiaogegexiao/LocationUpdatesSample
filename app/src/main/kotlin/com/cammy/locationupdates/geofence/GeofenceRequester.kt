@@ -113,8 +113,6 @@ class GeofenceRequester(// Storage for a reference to the calling client
                 // If a request is in progress
             } else {
                 Log.d(TAG, "failed to add geofence")
-                // Throw an exception and stop the request
-                throw UnsupportedOperationException()
             }
         }
     }
@@ -213,7 +211,13 @@ class GeofenceRequester(// Storage for a reference to the calling client
         // If adding the geocodes was successful
         if (status.isSuccess) {
             // If adding the geofences failed
-            Log.d(TAG, "add geofence successfully!")
+            var nameList = ArrayList<String>()
+            mCurrentGeofenceModels?.let {
+                for (geofenceModel in it) {
+                    nameList.add(geofenceModel.name)
+                }
+            }
+            Log.d(TAG, "add geofence successfully! " + nameList)
             mCurrentGeofenceModels?.let {
                 for (geofenceModel in it) {
                     if (geofenceModel.name == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID) {
@@ -243,6 +247,7 @@ class GeofenceRequester(// Storage for a reference to the calling client
      */
     private fun requestDisconnection() {
         // A request is no longer in progress
+        Log.d(TAG, "requestDisconnection")
         inProgressFlag = false
         mGoogleApiClient!!.unregisterConnectionCallbacks(this)
         mGoogleApiClient.unregisterConnectionFailedListener(this)

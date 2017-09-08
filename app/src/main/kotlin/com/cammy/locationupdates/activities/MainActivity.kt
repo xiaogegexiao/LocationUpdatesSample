@@ -207,16 +207,16 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
 
     private fun removeLocationUpdateGeofence(geofenceId: String) {
         mGeofenceRemover.removeGeofenceById(geofenceId)
+        mInProgress = false
     }
 
     private fun reRegisterLocationUpdateGeofence(geofenceId:String, location: Location) {
-        removeLocationUpdateGeofence(geofenceId)
         var geofenceModel = GeofenceModel()
         geofenceModel.latitude = location.latitude
         geofenceModel.longitude = location.longitude
         geofenceModel.radius = GeofenceUtils.SIGNIFICANT_CHANGE_RADIUS
         geofenceModel.name = geofenceId
-        mGeofenceRequester.addGeofences(Collections.singletonList(geofenceModel), Collections.singletonList(geofenceModel))
+        mGeofenceRequester.addGeofences(Collections.singletonList(geofenceModel), Collections.emptyList())
         mInProgress = false
     }
 
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
                         .setContentTitle(title.toUpperCase())
                         .setContentText(msg)
 
-        Log.d(ReceiveTransitionsIntentService.TAG, msg)
+        Log.d(TAG, msg)
         mNotificationManager.notify(System.currentTimeMillis().toString(), ReceiveTransitionsIntentService.MONITOR_LOCATION_UPDATE, mBuilder.build())
     }
 

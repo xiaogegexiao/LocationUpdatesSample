@@ -289,7 +289,7 @@ class GeofenceRemover
         // If removing the geofences was successful
         if (status.isSuccess) {
             // If removing the geocodes failed
-            Log.d(TAG, "remove geofence successfully!")
+            Log.d(TAG, "remove geofence successfully! " + mCurrentGeofenceIds)
             mCurrentGeofenceIds?.let {
                 for (geofenceId in it) {
                     if (geofenceId == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID) {

@@ -123,7 +123,7 @@ class ReceiveTransitionsIntentService : IntentService("ReceiveTransitionsIntentS
     }
 
     private fun reRegisterLocationUpdateGeofence(geofenceId:String, location: Location) {
-        mGeofenceRemover.removeGeofenceById(geofenceId)
+        Log.d(TAG, "reRegisterLocationUpdateGeofence at " + location.latitude + ", " + location.longitude)
         var geofenceModel = GeofenceModel()
         geofenceModel.latitude = location.latitude
         geofenceModel.longitude = location.longitude
