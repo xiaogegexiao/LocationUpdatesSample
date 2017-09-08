@@ -10,7 +10,7 @@ android {
     compileSdkVersion 26
     buildToolsVersion "26.0.1"
     defaultConfig {
-        applicationId "com.cammy.com.cammy.locationupdates"
+        applicationId "com.cammy.locationupdates"
         minSdkVersion 16
         targetSdkVersion 26
         versionCode 1

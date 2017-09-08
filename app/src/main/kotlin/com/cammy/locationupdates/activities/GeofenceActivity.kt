@@ -79,7 +79,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     override fun onConnectionFailed(p0: ConnectionResult) {
     }
 
-    private val DEFAULT_RADIUS: Long = 200
+    private val DEFAULT_RADIUS: Long = 100
     private val FINE_LOCATION_PERMISSION_REQUEST_CODE: Int = 0
 
 

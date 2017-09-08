@@ -13,8 +13,10 @@ import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
-import com.cammy.locationupdates.models.GeofenceModel
-import com.google.android.gms.maps.*
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapsInitializer
+import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PolylineOptions
 import kotlinx.android.synthetic.main.activity_geofence.*

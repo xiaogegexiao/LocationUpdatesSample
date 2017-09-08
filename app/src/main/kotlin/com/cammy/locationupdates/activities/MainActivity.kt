@@ -3,7 +3,10 @@ package com.cammy.locationupdates.activities
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
@@ -12,69 +15,63 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.app.NotificationCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
-import android.widget.Toast
 import com.cammy.locationupdates.LocationPreferences
 import com.cammy.locationupdates.MainApplication
 import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
+import com.cammy.locationupdates.geofence.GeofenceRemover
+import com.cammy.locationupdates.geofence.GeofenceRequester
+import com.cammy.locationupdates.geofence.GeofenceUtils
+import com.cammy.locationupdates.models.GeofenceModel
 import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
-import com.google.android.gms.common.api.ResultCallback
-import com.google.android.gms.common.api.Status
-import com.google.android.gms.location.*
+import com.google.android.gms.location.LocationServices
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
 import javax.inject.Inject
 
 
-class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, ResultCallback<Status> {
-    override fun onResult(status: Status) {
-        Log.d(TAG, "result " + status.isSuccess)
-        mLocationPreferences.mIsUpdatingLocations = !mLocationPreferences.mIsUpdatingLocations
-        mLocationPreferences.save()
-
-        // Disconnect the location client
-        requestDisconnection()
+class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+    override fun onConnectionFailed(p0: ConnectionResult) {
+        // Turn off the request flag
+        mInProgress = false
     }
 
     override fun onConnected(p0: Bundle?) {
-        Log.d(TAG, "onConnected")
-        if (mLocationPreferences.mIsUpdatingLocations) {
-            removeLocationUpdates()
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            mInProgress = false
+            return
+        }
+        if (!mLocationPreferences.mIsUpdatingLocations) {
+            val location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient)
+            notifyLocation(location)
+            reRegisterLocationUpdateGeofence(GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID, location)
         } else {
-            registerLocationUpdates()
+            removeLocationUpdateGeofence(GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID)
         }
     }
 
     override fun onConnectionSuspended(p0: Int) {
-        Toast.makeText(this, "Suspended to connect to google api", Toast.LENGTH_SHORT).show()
-        requestDisconnection()
-    }
-
-    override fun onConnectionFailed(p0: ConnectionResult) {
-        Toast.makeText(this, "Failed to connect to google api", Toast.LENGTH_SHORT).show()
-        requestDisconnection()
+        // Turn off the request flag
+        mInProgress = false
+        mGoogleApiClient.unregisterConnectionCallbacks(this)
+        mGoogleApiClient.unregisterConnectionFailedListener(this)
     }
 
     companion object {
         val FINE_LOCATION_PERMISSION_REQUEST_CODE = 1
 
-        /**
-         * The desired interval for location updates. Inexact. Updates may be more or less frequent.
-         */
-        private val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 5 * 60 * 1000
-
-        /**
-         * The fastest rate for active location updates. Exact. Updates will never be more frequent
-         * than this value.
-         */
-        private val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS = UPDATE_INTERVAL_IN_MILLISECONDS / 5
-
         private val TAG = MainActivity::class.simpleName
-
-        val MONITOR_LOCATION_UPDATES = 1
     }
 
     val component: AppComponent by lazy {
@@ -83,6 +80,12 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
                 .appModule(AppModule(this))
                 .build()
     }
+
+    @Inject
+    lateinit var mGeofenceRequester: GeofenceRequester
+
+    @Inject
+    lateinit var mGeofenceRemover: GeofenceRemover
 
     @Inject
     lateinit var mLocationPreferences: LocationPreferences
@@ -94,25 +97,19 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
     lateinit var mNotificationManager: NotificationManager
 
     private var mHandler = Handler()
-    var mInprogress: Boolean = false
-    var mLocationRequest: LocationRequest? = null
-    var mLocationListener: LocationListener? = null
     var mAskingForPermission: Boolean = false
+    private var mInProgress: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         component.inject(this)
         setContentView(R.layout.activity_main)
 
-        createLocationRequest()
-        createLocationListener()
-
         geofence_setup.setOnClickListener{ view ->
             val intent = Intent(this, GeofenceActivity::class.java)
             startActivity(intent)
         }
 
-        location_trigger.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
         location_trigger.setOnClickListener { view ->
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 //    ActivityCompat#requestPermissions
@@ -123,7 +120,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
                 // for ActivityCompat#requestPermissions for more details.
                 askForFineLoactionPermission()
             } else {
-                requestConnectionWithGoogleAPI()
+                addLocationUpateGeofence()
             }
         }
 
@@ -152,7 +149,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
                     granted = granted && grantResult == PackageManager.PERMISSION_GRANTED
                 }
                 if (granted) {
-                    mHandler.post(this::requestConnectionWithGoogleAPI)
+                    mHandler.post(this::addLocationUpateGeofence)
                 } else {
                     finish()
                 }
@@ -161,114 +158,109 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, G
         }
     }
 
-    private fun requestConnectionWithGoogleAPI() {
-        if (mInprogress)
-            return
-        mInprogress = true
+    fun addLocationUpateGeofence() {
+        // If a request is not already in progress
+        if (!mInProgress) {
+
+            // Toggle the flag and continue
+            mInProgress = true
+
+            if (!mGoogleApiClient.isConnected || !mGoogleApiClient.isConnecting) {
+                requestConnection()
+            } else {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    mInProgress = false
+                    return
+                }
+                if (!mLocationPreferences.mIsUpdatingLocations) {
+                    val location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient)
+                    notifyLocation(location)
+                    reRegisterLocationUpdateGeofence(GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID, location)
+                } else {
+                    removeLocationUpdateGeofence(GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID)
+                }
+            }
+            // Request a connection to Location Services
+
+            // If a request is in progress
+        } else {
+            Log.d(TAG, "currently registering location updates")
+        }
+    }
+
+    /**
+     * Request a connection to Location Services. This call returns immediately,
+     * but the request is not complete until onConnected() or onConnectionFailure() is called.
+     */
+    private fun requestConnection() {
         mGoogleApiClient.registerConnectionCallbacks(this)
         mGoogleApiClient.registerConnectionFailedListener(this)
         mGoogleApiClient.connect()
     }
 
-    /**
-     * Get a location client and disconnect from Location Services
-     */
-    private fun requestDisconnection() {
-        // A request is no longer in progress
-        mGoogleApiClient.unregisterConnectionCallbacks(this)
-        mGoogleApiClient.unregisterConnectionFailedListener(this)
-        mGoogleApiClient.disconnect()
-        mInprogress = false
-        location_trigger.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
+    private fun removeLocationUpdateGeofence(geofenceId: String) {
+        mGeofenceRemover.removeGeofenceById(geofenceId)
     }
 
-    fun registerLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            mInprogress = false
-            return
-        }
-        Log.d(TAG, "registerLocationUpdates")
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, mLocationListener).setResultCallback(this)
+    private fun reRegisterLocationUpdateGeofence(geofenceId:String, location: Location) {
+        removeLocationUpdateGeofence(geofenceId)
+        var geofenceModel = GeofenceModel()
+        geofenceModel.latitude = location.latitude
+        geofenceModel.longitude = location.longitude
+        geofenceModel.radius = GeofenceUtils.SIGNIFICANT_CHANGE_RADIUS
+        geofenceModel.name = geofenceId
+        mGeofenceRequester.addGeofences(Collections.singletonList(geofenceModel), Collections.singletonList(geofenceModel))
+        mInProgress = false
     }
 
-    fun removeLocationUpdates() {
-        Log.d(TAG, "removeLocationUpdates")
-        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, mLocationListener)
-        mLocationPreferences.mIsUpdatingLocations = false
-        mLocationPreferences.save()
-        requestDisconnection()
-    }
-
-    /**
-     * Sets up the location request. Android has two location request settings:
-     * `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION`. These settings control
-     * the accuracy of the current location. This sample uses ACCESS_FINE_LOCATION, as defined in
-     * the AndroidManifest.xml.
-     *
-     *
-     * When the ACCESS_FINE_LOCATION setting is specified, combined with a fast update
-     * interval (5 seconds), the Fused Location Provider API returns location updates that are
-     * accurate to within a few feet.
-     *
-     *
-     * These settings are appropriate for mapping applications that show real-time location
-     * updates.
-     */
-    private fun createLocationRequest() : LocationRequest? {
-        if (mLocationRequest != null) {
-            return mLocationRequest
-        }
-        mLocationRequest = LocationRequest()
-
-        // Sets the desired interval for active location updates. This interval is
-        // inexact. You may not receive updates at all if no location sources are available, or
-        // you may receive them slower than requested. You may also receive updates faster than
-        // requested if other applications are requesting location at a faster interval.
-        mLocationRequest?.interval = UPDATE_INTERVAL_IN_MILLISECONDS
-
-        // Sets the fastest rate for active location updates. This interval is exact, and your
-        // application will never receive updates faster than this value.
-        mLocationRequest?.fastestInterval = FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS
-
-        mLocationRequest?.smallestDisplacement = 50f
-
-        mLocationRequest?.priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
-        return mLocationRequest
-    }
-
-    /**
-     * Creates a callback for receiving location events.
-     */
-    private fun createLocationListener() : LocationListener? {
-        if (mLocationListener != null) {
-            return mLocationListener
-        }
-        mLocationListener = LocationListener { location ->
-            mLocationPreferences.mLocationUpdateList.add(location)
-            mLocationPreferences.save()
-            notifyGeofence(location)
-            Log.d(TAG, "received location update " + location.latitude + ", " + location.longitude)
-        }
-        return mLocationListener
-    }
-
-    private fun notifyGeofence(location: Location) {
+    private fun notifyLocation(location: Location) {
         val title = "Location change"
-        val msg = "received location update " + location.latitude + ", " + location.longitude
+        val msg = "new Location " + location.latitude + ", " + location.longitude
         val mBuilder =
                 NotificationCompat.Builder(applicationContext, MainApplication.LOCATION_UPDATE_CHANNEL)
                         .setSmallIcon(R.drawable.ic_launcher)
+                        .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
                         .setContentTitle(title.toUpperCase())
                         .setContentText(msg)
 
         Log.d(ReceiveTransitionsIntentService.TAG, msg)
-        mNotificationManager.notify(System.currentTimeMillis().toString(), MONITOR_LOCATION_UPDATES, mBuilder.build())
+        mNotificationManager.notify(System.currentTimeMillis().toString(), ReceiveTransitionsIntentService.MONITOR_LOCATION_UPDATE, mBuilder.build())
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Register mMessageReceiver to receive messages.
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(GeofenceUtils.ACTION_LOCATION_UPDATE_STATUS)
+        registerReceiver(mMessageReceiver, intentFilter)
+        bindView()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(mMessageReceiver)
+    }
+
+    // handler for received Intents for the "my-event" event
+    private val mMessageReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            // Extract data included in the Intent
+            val action = intent.action
+            when (action) {
+                GeofenceUtils.ACTION_LOCATION_UPDATE_STATUS-> mHandler.post { bindView() }
+                else -> {}
+            }
+        }
+    }
+
+    fun bindView() {
+        location_trigger.text = if (mLocationPreferences.mIsUpdatingLocations) "stop updating location" else "start updating location"
     }
 }

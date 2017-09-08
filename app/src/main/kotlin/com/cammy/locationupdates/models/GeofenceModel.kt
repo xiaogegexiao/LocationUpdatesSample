@@ -1,5 +1,6 @@
 package com.cammy.locationupdates.models
 
+import com.cammy.locationupdates.geofence.GeofenceUtils
 import com.google.android.gms.location.Geofence
 
 /**
@@ -11,6 +12,10 @@ class GeofenceModel {
     var longitude: Double = 0.0
     var radius: Long = 0
 
+    fun isLocationUpdateGeofence(): Boolean {
+        return name == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID
+    }
+
     /**
      * Creates a Location Services Geofence object from a
      * GeofenceModel.
@@ -21,7 +26,8 @@ class GeofenceModel {
         // Build a new Geofence object
         return Geofence.Builder()
                 .setRequestId(name)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+                .setTransitionTypes(if (isLocationUpdateGeofence()) Geofence.GEOFENCE_TRANSITION_EXIT else (Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT or Geofence.GEOFENCE_TRANSITION_DWELL))
+                .setLoiteringDelay(60 * 1000)
                 .setCircularRegion(
                         latitude,
                         longitude,

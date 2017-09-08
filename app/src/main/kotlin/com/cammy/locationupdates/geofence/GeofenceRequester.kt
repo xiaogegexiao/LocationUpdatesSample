@@ -5,11 +5,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
+import com.cammy.locationupdates.LocationPreferences
+import com.cammy.locationupdates.models.GeofenceEvent
 import com.cammy.locationupdates.models.GeofenceModel
 import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
 import com.google.android.gms.common.ConnectionResult
@@ -38,12 +41,13 @@ import java.util.*
 class GeofenceRequester(// Storage for a reference to the calling client
         //    private final Activity mActivity;
         private val mContext: Context, // Stores the current instantiation of the location client
-        private val mGoogleApiClient: GoogleApiClient?) :
+        private val mGoogleApiClient: GoogleApiClient?,
+        private val mLocationPrefernces: LocationPreferences) :
         ResultCallback<Status>,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
     companion object {
-        val TAG = this::class.simpleName
+        val TAG = GeofenceRequester::class.simpleName
     }
 
     // Stores the PendingIntent used to send geofence transitions back to the app
@@ -85,15 +89,15 @@ class GeofenceRequester(// Storage for a reference to the calling client
     fun addGeofences(geofenceModels: List<GeofenceModel>, manualModels: List<GeofenceModel>) {
         if (ContextCompat.checkSelfPermission(mContext,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            /*
-             * Save the geofences so that they can be sent to Location Services once the
-             * connection is available.
-             */
-            mCurrentGeofenceModels = geofenceModels
-            mManualGeofenceModels = manualModels
-
             // If a request is not already in progress
             if (!inProgressFlag) {
+
+                /*
+                 * Save the geofences so that they can be sent to Location Services once the
+                 * connection is available.
+                 */
+                mCurrentGeofenceModels = geofenceModels
+                mManualGeofenceModels = manualModels
 
                 // Toggle the flag and continue
                 inProgressFlag = true
@@ -101,7 +105,7 @@ class GeofenceRequester(// Storage for a reference to the calling client
                 if (!mGoogleApiClient!!.isConnected || !mGoogleApiClient.isConnecting) {
                     requestConnection()
                 } else {
-//                    checkGeofencePresence()
+                    checkGeofencePresence()
                     continueAddGeofences()
                 }
                 // Request a connection to Location Services
@@ -132,11 +136,12 @@ class GeofenceRequester(// Storage for a reference to the calling client
          */ val geofenceRequest: GeofencingRequest
         get() {
             val builder = GeofencingRequest.Builder()
-            builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER or GeofencingRequest.INITIAL_TRIGGER_EXIT)
+            builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
             val currentGeofences = ArrayList<Geofence>()
             for (model in mCurrentGeofenceModels!!) {
                 currentGeofences.add(model.toGeofence())
             }
+
             builder.addGeofences(currentGeofences)
             return builder.build()
         }
@@ -171,18 +176,62 @@ class GeofenceRequester(// Storage for a reference to the calling client
                 .setResultCallback(this)
     }
 
+    private fun checkGeofencePresence() {
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        val location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient)
+        mManualGeofenceModels?.let {
+            if (it.isNotEmpty() && location != null) {
+                for (geofenceModel in it) {
+                    val distance = FloatArray(1)
+                    Location.distanceBetween(
+                            location.latitude,
+                            location.longitude,
+                            geofenceModel.latitude,
+                            geofenceModel.longitude,
+                            distance
+                    )
+                    val geofenceEvent = GeofenceEvent(geofenceModel.name, if (distance[0] < geofenceModel.radius) Geofence.GEOFENCE_TRANSITION_ENTER else Geofence.GEOFENCE_TRANSITION_EXIT, location)
+                    // Create an Intent pointing to the IntentService
+                    val intent = Intent(mContext, ReceiveTransitionsIntentService::class.java)
+                    intent.putExtra(ReceiveTransitionsIntentService.EXTRA_GEOFENCE_EVENT, geofenceEvent)
+                    mContext.startService(intent)
+                }
+            }
+        }
+    }
+
     override fun onResult(status: Status) {
         // If adding the geocodes was successful
         if (status.isSuccess) {
             // If adding the geofences failed
             Log.d(TAG, "add geofence successfully!")
+            mCurrentGeofenceModels?.let {
+                for (geofenceModel in it) {
+                    if (geofenceModel.name == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID) {
+                        mLocationPrefernces.mIsUpdatingLocations = true
+                        mLocationPrefernces.save()
+                        var intent = Intent(GeofenceUtils.ACTION_LOCATION_UPDATE_STATUS)
+                        mContext.sendBroadcast(intent)
+                        break
+                    }
+                }
+            }
         } else {
             // TODO when result is failure
-//            if (status.statusCode == 1000) {
+            if (status.statusCode == 1000) {
 //                val intent = Intent(ErrorReceiver.ERROR_ACTION)
 //                intent.putExtra(ErrorReceiver.ERROR_TYPE, ErrorReceiver.error_location_service)
 //                mContext.sendBroadcast(intent)
-//            }
+            }
         }
 
         // Disconnect the location client
@@ -206,7 +255,7 @@ class GeofenceRequester(// Storage for a reference to the calling client
          * Continue by adding the requested geofences.
          */
     override fun onConnected(arg0: Bundle?) {
-//        checkGeofencePresence()
+        checkGeofencePresence()
         // Continue adding the geofences
         continueAddGeofences()
     }

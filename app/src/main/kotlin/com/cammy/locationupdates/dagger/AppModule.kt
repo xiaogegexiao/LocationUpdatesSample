@@ -3,8 +3,10 @@ package com.cammy.locationupdates.dagger
 import android.app.NotificationManager
 import android.content.Context
 import com.cammy.locationupdates.LocationPreferences
+import com.cammy.locationupdates.geofence.GeofenceRemover
 import com.cammy.locationupdates.geofence.GeofenceRequester
 import com.google.android.gms.common.api.GoogleApiClient
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import dagger.Module
 import dagger.Provides
@@ -37,7 +39,19 @@ class AppModule (private val context: Context) {
 
     @Provides
     @Singleton
-    fun provideGeofenceRequester(googleApiClient: GoogleApiClient): GeofenceRequester {
-        return GeofenceRequester(context, googleApiClient)
+    fun provideGeofenceRequester(googleApiClient: GoogleApiClient, locationPreferences: LocationPreferences): GeofenceRequester {
+        return GeofenceRequester(context, googleApiClient, locationPreferences)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGeofenceRemover(googleApiClient: GoogleApiClient, locationPreferences: LocationPreferences): GeofenceRemover {
+        return GeofenceRemover(context, googleApiClient, locationPreferences)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFusedLocationProviderClient() : FusedLocationProviderClient {
+        return LocationServices.getFusedLocationProviderClient(context)
     }
 }
