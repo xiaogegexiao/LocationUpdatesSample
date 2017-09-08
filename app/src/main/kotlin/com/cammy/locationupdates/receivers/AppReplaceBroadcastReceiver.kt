@@ -103,6 +103,8 @@ class AppReplaceBroadcastReceiver : BroadcastReceiver() {
         // application will never receive updates faster than this value.
         locationRequest.fastestInterval = MainActivity.FASTEST_UPDATE_INTERVAL
 
+        locationRequest.smallestDisplacement = MainActivity.MAX_DISPLACEMENT
+
         locationRequest.priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
 
         // Sets the maximum time when batched location updates are delivered. Updates may be
