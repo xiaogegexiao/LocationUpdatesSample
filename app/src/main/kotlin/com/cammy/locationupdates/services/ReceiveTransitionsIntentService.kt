@@ -78,30 +78,24 @@ class ReceiveTransitionsIntentService : IntentService("ReceiveTransitionsIntentS
                 val geofences = event.triggeringGeofences
                 if (geofences.size > 0) {
                     for (geofence in geofences) {
-                        if (GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID == geofence.requestId) {
-                            notifyLocation(event.triggeringLocation)
-                            mLocationPreferences.mLocationUpdateList.add(event.triggeringLocation)
-                            reRegisterLocationUpdateGeofence(geofence.requestId, event.triggeringLocation)
-                        } else {
-                            mLocationPreferences.mGeofenceEventsMap?.let {
-                                val geofencingEventList: MutableList<GeofenceEvent>
-                                if (it.containsKey(geofence.requestId)) {
-                                    geofencingEventList = it[geofence.requestId]!!
-                                } else {
-                                    geofencingEventList = ArrayList()
-                                    it.put(geofence.requestId, geofencingEventList)
-                                }
-                                geofencingEventList.add(GeofenceEvent(geofence.requestId, event.geofenceTransition, event.triggeringLocation))
+                        mLocationPreferences.mGeofenceEventsMap?.let {
+                            val geofencingEventList: MutableList<GeofenceEvent>
+                            if (it.containsKey(geofence.requestId)) {
+                                geofencingEventList = it[geofence.requestId]!!
+                            } else {
+                                geofencingEventList = ArrayList()
+                                it.put(geofence.requestId, geofencingEventList)
                             }
-                            notifyGeofence(geofence.requestId, transition)
+                            geofencingEventList.add(GeofenceEvent(geofence.requestId, event.geofenceTransition, event.triggeringLocation))
                         }
+                        notifyGeofence(geofence.requestId, transition)
                     }
                     mLocationPreferences.save()
                 }
             } else {
                 var geofenceEvent = intent.getParcelableExtra<GeofenceEvent>(EXTRA_GEOFENCE_EVENT)
                 if (geofenceEvent != null){
-                    // Get the type of transition (entry or exit)
+                    // For manual check
                     val transition = geofenceEvent.geoTransition
                     if (/*transition == Geofence.GEOFENCE_TRANSITION_ENTER || */transition == Geofence.GEOFENCE_TRANSITION_EXIT) {
                         mLocationPreferences.mGeofenceEventsMap?.let {

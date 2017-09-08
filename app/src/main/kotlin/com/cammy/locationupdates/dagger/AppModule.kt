@@ -39,14 +39,14 @@ class AppModule (private val context: Context) {
 
     @Provides
     @Singleton
-    fun provideGeofenceRequester(googleApiClient: GoogleApiClient, locationPreferences: LocationPreferences): GeofenceRequester {
-        return GeofenceRequester(context, googleApiClient, locationPreferences)
+    fun provideGeofenceRequester(googleApiClient: GoogleApiClient): GeofenceRequester {
+        return GeofenceRequester(context, googleApiClient)
     }
 
     @Provides
     @Singleton
-    fun provideGeofenceRemover(googleApiClient: GoogleApiClient, locationPreferences: LocationPreferences): GeofenceRemover {
-        return GeofenceRemover(context, googleApiClient, locationPreferences)
+    fun provideGeofenceRemover(googleApiClient: GoogleApiClient): GeofenceRemover {
+        return GeofenceRemover(context, googleApiClient)
     }
 
     @Provides

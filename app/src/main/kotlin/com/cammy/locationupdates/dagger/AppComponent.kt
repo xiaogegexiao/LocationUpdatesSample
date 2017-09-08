@@ -5,6 +5,8 @@ import com.cammy.locationupdates.activities.MainActivity
 import com.cammy.locationupdates.MainApplication
 import com.cammy.locationupdates.activities.LocationListActivity
 import com.cammy.locationupdates.activities.MapLocationActivity
+import com.cammy.locationupdates.receivers.AppReplaceBroadcastReceiver
+import com.cammy.locationupdates.receivers.LocationUpdatesBroadcastReceiver
 import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
 import dagger.Component
 import javax.inject.Singleton
@@ -21,4 +23,6 @@ interface AppComponent {
     fun inject(activity: MainActivity)
     fun inject(activity: LocationListActivity)
     fun inject(activity: MapLocationActivity)
+    fun inject(receiver: LocationUpdatesBroadcastReceiver)
+    fun inject(receiver: AppReplaceBroadcastReceiver)
 }

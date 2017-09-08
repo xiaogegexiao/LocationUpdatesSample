@@ -41,8 +41,7 @@ import java.util.*
 class GeofenceRequester(// Storage for a reference to the calling client
         //    private final Activity mActivity;
         private val mContext: Context, // Stores the current instantiation of the location client
-        private val mGoogleApiClient: GoogleApiClient?,
-        private val mLocationPrefernces: LocationPreferences) :
+        private val mGoogleApiClient: GoogleApiClient?) :
         ResultCallback<Status>,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
@@ -218,17 +217,6 @@ class GeofenceRequester(// Storage for a reference to the calling client
                 }
             }
             Log.d(TAG, "add geofence successfully! " + nameList)
-            mCurrentGeofenceModels?.let {
-                for (geofenceModel in it) {
-                    if (geofenceModel.name == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID) {
-                        mLocationPrefernces.mIsUpdatingLocations = true
-                        mLocationPrefernces.save()
-                        var intent = Intent(GeofenceUtils.ACTION_LOCATION_UPDATE_STATUS)
-                        mContext.sendBroadcast(intent)
-                        break
-                    }
-                }
-            }
         } else {
             // TODO when result is failure
             if (status.statusCode == 1000) {

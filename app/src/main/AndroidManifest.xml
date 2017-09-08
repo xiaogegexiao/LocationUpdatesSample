@@ -37,6 +37,22 @@
 
         <activity android:name=".activities.LocationListActivity" />
         <activity android:name=".activities.MapLocationActivity" />
+
+        <receiver android:name=".receivers.LocationUpdatesBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.cammy.locationupdates.action.PROCESS_UPDATES" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".receivers.AppReplaceBroadcastReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <!--<action android:name="android.intent.action.PACKAGE_INSTALL" />-->
+                <!--<action android:name="android.intent.action.PACKAGE_RESTARTED" />-->
+                <!--<data android:scheme="package"/>-->
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

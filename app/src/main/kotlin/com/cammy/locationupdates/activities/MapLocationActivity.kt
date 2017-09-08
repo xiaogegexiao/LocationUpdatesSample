@@ -109,7 +109,7 @@ class MapLocationActivity : AppCompatActivity() {
                     var lastLocation: Location? = null
                     for (location in mLocationPreferences.mLocationUpdateList) {
                         lastLocation = location
-                        options.add(LatLng(location.altitude, location.longitude))
+                        options.add(LatLng(location.latitude, location.longitude))
                     }
                     googleMap.addPolyline(options)
                     lastLocation?.let {

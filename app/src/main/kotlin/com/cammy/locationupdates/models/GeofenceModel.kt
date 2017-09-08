@@ -12,10 +12,6 @@ class GeofenceModel {
     var longitude: Double = 0.0
     var radius: Long = 0
 
-    fun isLocationUpdateGeofence(): Boolean {
-        return name == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID
-    }
-
     /**
      * Creates a Location Services Geofence object from a
      * GeofenceModel.
@@ -26,8 +22,7 @@ class GeofenceModel {
         // Build a new Geofence object
         return Geofence.Builder()
                 .setRequestId(name)
-                .setTransitionTypes(if (isLocationUpdateGeofence()) Geofence.GEOFENCE_TRANSITION_EXIT else (Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT or Geofence.GEOFENCE_TRANSITION_DWELL))
-                .setLoiteringDelay(60 * 1000)
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
                 .setCircularRegion(
                         latitude,
                         longitude,

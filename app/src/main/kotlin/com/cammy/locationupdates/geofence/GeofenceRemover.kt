@@ -38,8 +38,7 @@ class GeofenceRemover
  */
 (// Storage for a context from the calling client
         private val mContext: Context, // Stores the current instantiation of the location client
-        private val mGoogleApiClient: GoogleApiClient?,
-        private val mLocationPreferences: LocationPreferences) : ResultCallback<Status>, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+        private val mGoogleApiClient: GoogleApiClient?) : ResultCallback<Status>, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     // Stores the current list of geofences
     private var mCurrentGeofenceIds: List<String>? = null
@@ -290,17 +289,6 @@ class GeofenceRemover
         if (status.isSuccess) {
             // If removing the geocodes failed
             Log.d(TAG, "remove geofence successfully! " + mCurrentGeofenceIds)
-            mCurrentGeofenceIds?.let {
-                for (geofenceId in it) {
-                    if (geofenceId == GeofenceUtils.SIGNIFICANT_CHANGE_GEOFENCE_ID) {
-                        mLocationPreferences.mIsUpdatingLocations = false
-                        mLocationPreferences.save()
-                        var intent = Intent(GeofenceUtils.ACTION_LOCATION_UPDATE_STATUS)
-                        mContext.sendBroadcast(intent)
-                        break
-                    }
-                }
-            }
         } else {
             if (status.statusCode == 1000) {
                 //                Intent intent = new Intent(ErrorReceiver.ERROR_ACTION);
