@@ -11,10 +11,9 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
-import com.cammy.locationupdates.LocationPreferences
 import com.cammy.locationupdates.models.GeofenceEvent
 import com.cammy.locationupdates.models.GeofenceModel
-import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
+import com.cammy.locationupdates.receivers.ReceiveTransitionReceiver
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.common.api.ResultCallback
@@ -198,9 +197,9 @@ class GeofenceRequester(// Storage for a reference to the calling client
                     )
                     val geofenceEvent = GeofenceEvent(geofenceModel.name, if (distance[0] < geofenceModel.radius) Geofence.GEOFENCE_TRANSITION_ENTER else Geofence.GEOFENCE_TRANSITION_EXIT, location)
                     // Create an Intent pointing to the IntentService
-                    val intent = Intent(mContext, ReceiveTransitionsIntentService::class.java)
-                    intent.putExtra(ReceiveTransitionsIntentService.EXTRA_GEOFENCE_EVENT, geofenceEvent)
-                    mContext.startService(intent)
+                    val intent = Intent(mContext, ReceiveTransitionReceiver::class.java)
+                    intent.putExtra(ReceiveTransitionReceiver.EXTRA_GEOFENCE_EVENT, geofenceEvent)
+                    mContext.sendBroadcast(intent)
                 }
             }
         }
@@ -276,7 +275,7 @@ class GeofenceRequester(// Storage for a reference to the calling client
         }
 
         // Create an Intent pointing to the IntentService
-        val intent = Intent(mContext, ReceiveTransitionsIntentService::class.java)
+        val intent = Intent(mContext, ReceiveTransitionReceiver::class.java)
         /*
          * Return a PendingIntent to start the IntentService.
          * Always create a PendingIntent sent to Location Services
@@ -284,7 +283,7 @@ class GeofenceRequester(// Storage for a reference to the calling client
          * again updates the original. Otherwise, Location Services
          * can't match the PendingIntent to requests made with it.
          */
-        return PendingIntent.getService(
+        return PendingIntent.getBroadcast(
                 mContext,
                 0,
                 intent,

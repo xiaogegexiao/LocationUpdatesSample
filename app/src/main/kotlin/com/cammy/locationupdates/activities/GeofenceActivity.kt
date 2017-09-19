@@ -3,6 +3,7 @@ package com.cammy.locationupdates.activities
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.DialogInterface
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Address
@@ -15,6 +16,8 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.Toast
 import com.cammy.locationupdates.LocationPreferences
 import com.cammy.locationupdates.R
 import com.cammy.locationupdates.adapters.GeofenceListAdapter
@@ -79,7 +82,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     override fun onConnectionFailed(p0: ConnectionResult) {
     }
 
-    private val DEFAULT_RADIUS: Long = 100
+    private val DEFAULT_RADIUS: Long = 150
     private val FINE_LOCATION_PERMISSION_REQUEST_CODE: Int = 0
 
 
@@ -125,7 +128,16 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         setUpMapIfRequired()
 
         mLinearLayoutManager = LinearLayoutManager(this)
-        mGeofenceAdapter = GeofenceListAdapter(this)
+        var adapter = GeofenceListAdapter(this)
+
+        adapter.mOnClickListener = View.OnClickListener { view ->
+            var geofenceModel = view.tag as GeofenceModel
+
+            var newIntent = Intent(this, GeofenceEventsActivity::class.java)
+            newIntent.putExtra(GeofenceEventsActivity.EXTRA_GEOFENCE_ID, geofenceModel.name)
+            startActivity(newIntent)
+        }
+        mGeofenceAdapter = adapter
         recyclerView.layoutManager = mLinearLayoutManager
         recyclerView.adapter = mGeofenceAdapter
         mGeofenceAdapter?.setItems(mLocationPreferences.mGeofenceModelMap?.values?.toList())

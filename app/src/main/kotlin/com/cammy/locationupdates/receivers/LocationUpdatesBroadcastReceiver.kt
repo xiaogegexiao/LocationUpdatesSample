@@ -29,7 +29,6 @@ import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
-import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
 import com.google.android.gms.location.LocationResult
 import javax.inject.Inject
 
@@ -95,6 +94,6 @@ class LocationUpdatesBroadcastReceiver : BroadcastReceiver() {
                         .setContentText(msg)
 
         Log.d(TAG, msg)
-        mNotificationManager.notify(System.currentTimeMillis().toString(), ReceiveTransitionsIntentService.MONITOR_LOCATION_UPDATE, mBuilder.build())
+        mNotificationManager.notify(System.currentTimeMillis().toString(), ReceiveTransitionReceiver.MONITOR_LOCATION_UPDATE, mBuilder.build())
     }
 }

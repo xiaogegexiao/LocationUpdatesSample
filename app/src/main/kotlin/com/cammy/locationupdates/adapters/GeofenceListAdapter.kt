@@ -12,9 +12,16 @@ import kotlinx.android.synthetic.main.list_item_geofence.view.*
 /**
  * Created by xiaomei on 6/9/17.
  */
-class GeofenceListAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder> {
+class GeofenceListAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder>, View.OnClickListener{
+    override fun onClick(p0: View?) {
+        mOnClickListener?.let {
+            it.onClick(p0)
+        }
+    }
+
     var mItems: MutableList<GeofenceModel> = ArrayList()
     var mContext: Context? = null
+    var mOnClickListener: View.OnClickListener? = null
 
     constructor(context: Context?) : super() {
         this.mContext = context
@@ -35,6 +42,8 @@ class GeofenceListAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder> {
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder?, position: Int) {
         mItems[position]?.let {
             (holder as GeofenceViewHolder).itemView.geofence_name.text = it.name
+            holder.itemView.tag = it
+            holder.itemView.setOnClickListener(this)
         }
     }
 

@@ -38,19 +38,19 @@ class MainActivity : AppCompatActivity() {
         /**
          * The desired interval for location updates. Inexact. Updates may be more or less frequent.
          */
-        public val UPDATE_INTERVAL: Long = 5 * 60 * 1000 // Every 5 mins
+        public val UPDATE_INTERVAL: Long = 10 * 60 * 1000 // Every 10 mins
 
         /**
          * The fastest rate for active location updates. Updates will never be more frequent
          * than this value, but they may be less frequent.
          */
-        public val FASTEST_UPDATE_INTERVAL: Long = 60 * 1000 // Every 1 min
+        public val FASTEST_UPDATE_INTERVAL: Long = 5 * 60 * 1000 // Every 5 min
 
         /**
          * The max time before batched results are delivered by location services. Results may be
          * delivered sooner than this interval.
          */
-        public val MAX_WAIT_TIME = UPDATE_INTERVAL * 2 // Every 10 minutes.
+        public val MAX_WAIT_TIME = UPDATE_INTERVAL * 2 // Every 20 minutes.
 
         public val MAX_DISPLACEMENT = 100f // 100 meters change
     }

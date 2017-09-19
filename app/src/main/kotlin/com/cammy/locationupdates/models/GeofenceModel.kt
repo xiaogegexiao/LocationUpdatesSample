@@ -1,6 +1,5 @@
 package com.cammy.locationupdates.models
 
-import com.cammy.locationupdates.geofence.GeofenceUtils
 import com.google.android.gms.location.Geofence
 
 /**

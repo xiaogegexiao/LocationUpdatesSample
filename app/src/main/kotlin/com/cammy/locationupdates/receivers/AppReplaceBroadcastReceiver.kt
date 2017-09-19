@@ -1,25 +1,17 @@
 package com.cammy.locationupdates.receivers
 
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.location.Location
-import android.support.v4.app.NotificationCompat
 import android.util.Log
 import com.cammy.locationupdates.LocationPreferences
-import com.cammy.locationupdates.MainApplication
-import com.cammy.locationupdates.R
 import com.cammy.locationupdates.activities.MainActivity
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
-import com.cammy.locationupdates.services.ReceiveTransitionsIntentService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.tasks.OnCompleteListener
 import javax.inject.Inject
 
 /**
