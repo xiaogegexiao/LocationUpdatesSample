@@ -16,10 +16,19 @@ import kotlin.collections.LinkedHashMap
 /**
  * Created by xiaomei on 6/9/17.
  */
-class LocationListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder> {
+class LocationListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>, View.OnClickListener {
+    override fun onClick(p0: View?) {
+        mOnClickListener?.let {
+            it.onClick(p0)
+        }
+    }
+
     var mItems: MutableList<Location> = ArrayList()
     var mItemsList: MutableMap<Long, MutableList<Location>> = LinkedHashMap()
     var mContext: Context? = null
+    var mOnClickListener: View.OnClickListener? = null
+        get
+        set
 
     constructor(context: Context?) : super() {
         this.mContext = context
@@ -105,7 +114,7 @@ class LocationListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (index == 0) {
                 return TYPE_SECTION
             }
-            index --
+            index--
             if (index < mapEntry.value.size) {
                 return TYPE_LOCATION
             }
@@ -128,6 +137,8 @@ class LocationListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder> {
             else -> {
                 getSection(position).let {
                     (holder as LocationViewHolder).itemView.date.text = Date(it).toString()
+                    holder.itemView.day_location_change.setOnClickListener(this)
+                    holder.itemView.day_location_change.tag = mItemsList[it]
                 }
             }
         }
@@ -147,7 +158,7 @@ class LocationListAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
 
-    class  LocationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
+    class LocationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
 
     companion object {
         var TYPE_LOCATION = 0

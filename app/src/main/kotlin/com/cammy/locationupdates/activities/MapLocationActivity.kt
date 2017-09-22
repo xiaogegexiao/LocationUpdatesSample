@@ -31,19 +31,19 @@ class MapLocationActivity : AppCompatActivity() {
                 .build()
     }
 
-    @Inject
-    lateinit var mLocationPreferences: LocationPreferences
-
+    private var mLocationList: MutableList<Location> = ArrayList()
     private var mHandler = Handler()
     private var mAskingForPermission = false
     private var mMap: GoogleMap? = null
 
     companion object {
         private val FINE_LOCATION_PERMISSION_REQUEST_CODE = 0
+        val EXTRA_LOCATIONS = "extra_locations"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mLocationList.addAll(intent.getParcelableArrayListExtra(EXTRA_LOCATIONS))
         component.inject(this)
         setContentView(R.layout.activity_map)
 
@@ -107,7 +107,7 @@ class MapLocationActivity : AppCompatActivity() {
 
                     var options = PolylineOptions()
                     var lastLocation: Location? = null
-                    for (location in mLocationPreferences.mLocationUpdateList) {
+                    for (location in mLocationList) {
                         lastLocation = location
                         options.add(LatLng(location.latitude, location.longitude))
                     }

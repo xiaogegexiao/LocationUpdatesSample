@@ -1,11 +1,13 @@
 package com.cammy.locationupdates.activities
 
 import android.content.Intent
+import android.location.Location
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import com.cammy.locationupdates.LocationPreferences
 import com.cammy.locationupdates.R
 import com.cammy.locationupdates.adapters.LocationListAdapter
@@ -42,6 +44,14 @@ class LocationListActivity : AppCompatActivity() {
         recyclerView.adapter = mLocationListAdapter
 
         mLocationListAdapter?.setItems(mLocationPreferences.mLocationUpdateList)
+        mLocationListAdapter?.mOnClickListener = View.OnClickListener { view ->
+            run {
+                var locations = view.tag as ArrayList<Location>
+                val intent = Intent(this, MapLocationActivity::class.java)
+                intent.putParcelableArrayListExtra(MapLocationActivity.EXTRA_LOCATIONS, locations)
+                startActivity(intent)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
