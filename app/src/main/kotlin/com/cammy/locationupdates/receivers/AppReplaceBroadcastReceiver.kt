@@ -10,6 +10,7 @@ import com.cammy.locationupdates.activities.MainActivity
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
+import com.cammy.locationupdates.fragments.RootFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import javax.inject.Inject
@@ -89,19 +90,19 @@ class AppReplaceBroadcastReceiver : BroadcastReceiver() {
         // requested if other applications are requesting location at a faster interval.
         // Note: apps running on "O" devices (regardless of targetSdkVersion) may receive updates
         // less frequently than this interval when the app is no longer in the foreground.
-        locationRequest.interval = MainActivity.UPDATE_INTERVAL
+        locationRequest.interval = RootFragment.UPDATE_INTERVAL
 
         // Sets the fastest rate for active location updates. This interval is exact, and your
         // application will never receive updates faster than this value.
-        locationRequest.fastestInterval = MainActivity.FASTEST_UPDATE_INTERVAL
+        locationRequest.fastestInterval = RootFragment.FASTEST_UPDATE_INTERVAL
 
-        locationRequest.smallestDisplacement = MainActivity.MAX_DISPLACEMENT
+        locationRequest.smallestDisplacement = RootFragment.MAX_DISPLACEMENT
 
         locationRequest.priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
 
         // Sets the maximum time when batched location updates are delivered. Updates may be
         // delivered sooner than this interval.
-        locationRequest.maxWaitTime = MainActivity.MAX_WAIT_TIME
+        locationRequest.maxWaitTime = RootFragment.MAX_WAIT_TIME
         return locationRequest
     }
 

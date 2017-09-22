@@ -2,4 +2,8 @@
     <string name="app_name">LocationUpdates</string>
     <string name="notification_channel_geofence">Geofence Channel</string>
     <string name="notification_channel_location_updates">Location updates channel</string>
+
+    <string name="label_setup_geofence">Setup Geofence</string>
+    <string name="label_uploading_location">Uploading location</string>
+    <string name="label_location_history">Location History</string>
 </resources>

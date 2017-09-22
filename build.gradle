@@ -7,12 +7,20 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'com.android.tools.build:gradle:3.0.0-beta6'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
+}
+
+def getBintrayUser() {
+    return project.hasProperty('bintray_user') ? project.property('bintray_user') : System.getenv('BINTRAY_USER')
+}
+
+def getBintrayKey() {
+    return project.hasProperty('bintray_apikey') ? project.property('bintray_apikey') : System.getenv('BINTRAY_API_KEY')
 }
 
 allprojects {

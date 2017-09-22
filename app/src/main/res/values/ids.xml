@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="table_item_setup_geofence" type="id" />
+    <item name="table_item_location_updates" type="id" />
+    <item name="table_item_location_history" type="id" />
+</resources>

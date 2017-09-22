@@ -35,8 +35,6 @@ object GeofenceUtils {
 
     var SIGNIFICANT_CHANGE_RADIUS = 100L
 
-    var ACTION_LOCATION_UPDATE_STATUS = "action_location_update_status"
-
     // Intent actions
     val ACTION_CONNECTION_ERROR = "com.cammy.cammy.geofence.ACTION_CONNECTION_ERROR"
 
