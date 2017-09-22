@@ -8,6 +8,8 @@ import android.os.Build
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
+import com.crashlytics.android.Crashlytics
+import io.fabric.sdk.android.Fabric
 import javax.inject.Inject
 
 /**
@@ -21,6 +23,9 @@ class MainApplication: Application() {
         super.onCreate()
         component.inject(this)
         createNotificationChannels()
+        if (!BuildConfig.DEBUG) {
+            val fabric = Fabric.with(applicationContext, Crashlytics())
+        }
     }
 
     val component: AppComponent by lazy {

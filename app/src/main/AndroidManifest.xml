@@ -33,6 +33,11 @@
             android:name="com.google.android.maps.v2.API_KEY"
             android:value="AIzaSyBznk41DODT7kFGyl3QIqyvb_x9NO0VBBs" />
 
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="494cc7f579bd22a3eaf3d637ad12e7d840c56bb7"
+            />
+
         <activity android:name=".activities.LocationListActivity" />
         <activity android:name=".activities.MapLocationActivity" />
 
