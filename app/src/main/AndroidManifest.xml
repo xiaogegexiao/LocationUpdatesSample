@@ -26,8 +26,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activities.GeofenceActivity" />
-        <activity android:name=".activities.GeofenceEventsActivity" />
         <!-- Goolgle Maps API Key -->
         <meta-data
             android:name="com.google.android.maps.v2.API_KEY"
@@ -37,9 +35,6 @@
             android:name="io.fabric.ApiKey"
             android:value="494cc7f579bd22a3eaf3d637ad12e7d840c56bb7"
             />
-
-        <activity android:name=".activities.LocationListActivity" />
-        <activity android:name=".activities.MapLocationActivity" />
 
         <receiver android:name=".receivers.LocationUpdatesBroadcastReceiver"
             android:exported="true">

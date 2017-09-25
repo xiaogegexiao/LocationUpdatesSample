@@ -1,9 +1,8 @@
-package com.cammy.locationupdates.activities
+package com.cammy.locationupdates.fragments
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.DialogInterface
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Address
@@ -12,19 +11,17 @@ import android.location.Location
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.ActivityCompat
-import android.support.v7.app.AppCompatActivity
+import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.widget.Toast
+import android.view.*
+import com.cammy.cammyui.activities.BaseActivity
+import com.cammy.cammyui.fragments.BaseFragment
 import com.cammy.locationupdates.LocationPreferences
 import com.cammy.locationupdates.R
 import com.cammy.locationupdates.adapters.GeofenceListAdapter
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
-import com.cammy.locationupdates.fragments.AlertEditTextDialogFragment
 import com.cammy.locationupdates.geofence.GeofenceRequester
 import com.cammy.locationupdates.models.GeofenceModel
 import com.google.android.gms.common.ConnectionResult
@@ -37,17 +34,15 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.Circle
 import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.android.synthetic.main.activity_geofence.*
+import kotlinx.android.synthetic.main.fragment_geofence.*
 import java.io.IOException
 import java.util.*
 import javax.inject.Inject
-import kotlin.collections.HashMap
-
 
 /**
- * Created by xiaomei on 31/8/17.
+ * Created by xiaomei on 22/9/17.
  */
-class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraMoveListener {
+class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraMoveListener{
     override fun onCameraMove() {
         val cameraPosition = mMap?.cameraPosition
 
@@ -58,7 +53,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     override fun onConnected(p0: Bundle?) {
         if (mUseCurrentLocation) {
             mUseCurrentLocation = false
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
                 //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -82,9 +77,25 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     override fun onConnectionFailed(p0: ConnectionResult) {
     }
 
-    private val DEFAULT_RADIUS: Long = 150
-    private val FINE_LOCATION_PERMISSION_REQUEST_CODE: Int = 0
+    companion object {
+        val TAG = GeofenceFragment::class.simpleName
 
+        private val DEFAULT_RADIUS: Long = 150
+        private val FINE_LOCATION_PERMISSION_REQUEST_CODE: Int = 0
+
+        fun newInstance(): Fragment {
+            val fragment = GeofenceFragment()
+            val bundle = Bundle()
+            fragment.arguments = bundle
+            return fragment
+        }
+    }
+
+    val component: AppComponent by lazy {
+        DaggerAppComponent.builder()
+                .appModule(AppModule(this.context))
+                .build()
+    }
 
     @Inject
     lateinit var mLocationPreferences: LocationPreferences
@@ -104,20 +115,13 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     private var mLinearLayoutManager: LinearLayoutManager? = null
     private var mGeofenceAdapter: GeofenceListAdapter? = null
 
-    val component: AppComponent by lazy {
-        DaggerAppComponent
-                .builder()
-                .appModule(AppModule(this))
-                .build()
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
         component.inject(this)
+        setHasOptionsMenu(true)
         mGeofenceModelMap = mLocationPreferences.mGeofenceModelMap
-        setContentView(R.layout.activity_geofence)
         if (mGoogleApiClient == null) {
-            mGoogleApiClient = GoogleApiClient.Builder(this)
+            mGoogleApiClient = GoogleApiClient.Builder(context)
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
                     .addApi(LocationServices.API)
@@ -125,17 +129,17 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         }
 
         map_view.onCreate(savedInstanceState)
+        map_view.onResume()
         setUpMapIfRequired()
 
-        mLinearLayoutManager = LinearLayoutManager(this)
-        var adapter = GeofenceListAdapter(this)
+        mLinearLayoutManager = LinearLayoutManager(context)
+        var adapter = GeofenceListAdapter(context)
 
         adapter.mOnClickListener = View.OnClickListener { view ->
             var geofenceModel = view.tag as GeofenceModel
 
-            var newIntent = Intent(this, GeofenceEventsActivity::class.java)
-            newIntent.putExtra(GeofenceEventsActivity.EXTRA_GEOFENCE_ID, geofenceModel.name)
-            startActivity(newIntent)
+            var geofenceEventsFragment = GeofenceEventsFragment.newInstance(geofenceModel.name)
+            (activity as BaseActivity).pushFragment(geofenceEventsFragment, GeofenceFragment.TAG)
         }
         mGeofenceAdapter = adapter
         recyclerView.layoutManager = mLinearLayoutManager
@@ -143,15 +147,20 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         mGeofenceAdapter?.setItems(mLocationPreferences.mGeofenceModelMap?.values?.toList())
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.activity_geofence, menu)
-        return super.onCreateOptionsMenu(menu)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        var rootView = inflater.inflate(R.layout.fragment_geofence, container, false)
+        return rootView
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?, inflater: MenuInflater?) {
+        MenuInflater(context).inflate(R.menu.fragment_geofence, menu)
+        super.onCreateOptionsMenu(menu, inflater)
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         item?.let { menuItem ->
             when (menuItem.itemId) {
-                R.id.action_add_geofence -> runOnUiThread {
+                R.id.action_add_geofence -> kotlin.run {
                     val inputLocationNameDialog = AlertEditTextDialogFragment.newInstance(
                             "Please input location name",
                             "", "",
@@ -182,7 +191,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
                             }
                         }
                     }
-                    inputLocationNameDialog.show(fragmentManager, "input location name")
+                    inputLocationNameDialog.show(activity.fragmentManager, "input location name")
                 }
                 else -> {
                 }
@@ -196,7 +205,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     }
 
     private fun setUpMapIfRequired() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
             //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -208,7 +217,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
             if (mMap == null) {
                 map_view.getMapAsync(OnMapReadyCallback { googleMap ->
                     mMap = googleMap
-                    MapsInitializer.initialize(this)
+                    MapsInitializer.initialize(context)
                     googleMap.uiSettings.isRotateGesturesEnabled = false
                     googleMap.uiSettings.isTiltGesturesEnabled = false
                     googleMap.isMyLocationEnabled = true
@@ -271,7 +280,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     }
 
     private fun resolveAddressUsingGeocoder(searchLocation: String) {
-        val geocoder = Geocoder(this)
+        val geocoder = Geocoder(context)
         var addressList: List<Address>?
         try {
             addressList = geocoder.getFromLocationName(searchLocation, 1)
@@ -309,10 +318,12 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        map_view.onDestroy()
+        if (map_view != null) {
+            map_view.onDestroy()
+        }
         mMap = null
         mCurrentFenceCircle = null
+        super.onDestroy()
     }
 
     override fun onStart() {
@@ -329,6 +340,7 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
     override fun onResume() {
         super.onResume()
         map_view.onResume()
+        bindView()
     }
 
     override fun onPause() {
@@ -346,25 +358,10 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
         map_view.onLowMemory()
     }
 
-    override fun setVisible(visible: Boolean) {
-        super.setVisible(visible)
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            askForFineLoactionPermission()
-        } else {
-            mMap?.isMyLocationEnabled = visible
-        }
-    }
-
     fun askForFineLoactionPermission() {
         if (!mAskingForPermission) {
             mAskingForPermission = true
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), FINE_LOCATION_PERMISSION_REQUEST_CODE)
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), FINE_LOCATION_PERMISSION_REQUEST_CODE)
         }
     }
 
@@ -382,10 +379,14 @@ class GeofenceActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallback
                 if (granted) {
                     mHandler.post(this::setUpMapIfRequired)
                 } else {
-                    finish()
+                    activity.finish()
                 }
                 mAskingForPermission = false
             }
         }
+    }
+
+    fun bindView() {
+        mGeofenceAdapter?.notifyDataSetChanged()
     }
 }

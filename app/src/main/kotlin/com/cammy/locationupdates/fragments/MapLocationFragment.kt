@@ -1,4 +1,4 @@
-package com.cammy.locationupdates.activities
+package com.cammy.locationupdates.fragments
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -7,8 +7,10 @@ import android.location.Location
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.ActivityCompat
-import android.support.v7.app.AppCompatActivity
-import com.cammy.locationupdates.LocationPreferences
+import android.support.v4.app.Fragment
+import android.view.*
+import com.cammy.cammyui.activities.BaseActivity
+import com.cammy.cammyui.fragments.BaseFragment
 import com.cammy.locationupdates.R
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
@@ -19,15 +21,30 @@ import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PolylineOptions
-import kotlinx.android.synthetic.main.activity_geofence.*
-import javax.inject.Inject
+import kotlinx.android.synthetic.main.fragment_map.*
+import java.util.*
 
-class MapLocationActivity : AppCompatActivity() {
+/**
+ * Created by xiaomei on 22/9/17.
+ */
+class MapLocationFragment : BaseFragment() {
+
+    companion object {
+        val TAG = MapLocationFragment::class.simpleName
+        private val FINE_LOCATION_PERMISSION_REQUEST_CODE = 0
+        val EXTRA_LOCATIONS = "extra_locations"
+        fun newInstance(locations: ArrayList<Location>): Fragment {
+            val fragment = MapLocationFragment()
+            val bundle = Bundle()
+            bundle.putParcelableArrayList(EXTRA_LOCATIONS, locations)
+            fragment.arguments = bundle
+            return fragment
+        }
+    }
 
     val component: AppComponent by lazy {
-        DaggerAppComponent
-                .builder()
-                .appModule(AppModule(this))
+        DaggerAppComponent.builder()
+                .appModule(AppModule(this.context))
                 .build()
     }
 
@@ -36,24 +53,25 @@ class MapLocationActivity : AppCompatActivity() {
     private var mAskingForPermission = false
     private var mMap: GoogleMap? = null
 
-    companion object {
-        private val FINE_LOCATION_PERMISSION_REQUEST_CODE = 0
-        val EXTRA_LOCATIONS = "extra_locations"
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        mLocationList.addAll(intent.getParcelableArrayListExtra(EXTRA_LOCATIONS))
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        mLocationList.addAll(arguments.getParcelableArrayList(EXTRA_LOCATIONS))
         component.inject(this)
-        setContentView(R.layout.activity_map)
 
         map_view.onCreate(savedInstanceState)
         setUpMapIfRequired()
     }
 
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        var rootView = inflater.inflate(R.layout.fragment_map, container, false)
+        return rootView
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        map_view.onDestroy()
+        if (map_view != null) {
+            map_view.onDestroy()
+        }
         mMap = null
     }
 
@@ -88,7 +106,7 @@ class MapLocationActivity : AppCompatActivity() {
     }
 
     private fun setUpMapIfRequired() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
             //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -100,7 +118,7 @@ class MapLocationActivity : AppCompatActivity() {
             if (mMap == null) {
                 map_view.getMapAsync(OnMapReadyCallback { googleMap ->
                     mMap = googleMap
-                    MapsInitializer.initialize(this)
+                    MapsInitializer.initialize(context)
                     googleMap.uiSettings.isRotateGesturesEnabled = false
                     googleMap.uiSettings.isTiltGesturesEnabled = false
                     googleMap.isMyLocationEnabled = true
@@ -131,7 +149,7 @@ class MapLocationActivity : AppCompatActivity() {
     fun askForFineLoactionPermission() {
         if (!mAskingForPermission) {
             mAskingForPermission = true
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), FINE_LOCATION_PERMISSION_REQUEST_CODE)
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), FINE_LOCATION_PERMISSION_REQUEST_CODE)
         }
     }
 
@@ -149,7 +167,7 @@ class MapLocationActivity : AppCompatActivity() {
                 if (granted) {
                     mHandler.post(this::setUpMapIfRequired)
                 } else {
-                    finish()
+                    (activity as BaseActivity).popFragment()
                 }
                 mAskingForPermission = false
             }

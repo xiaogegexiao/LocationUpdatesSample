@@ -4,10 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
@@ -17,6 +14,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.cammy.cammyui.activities.BaseActivity
 import com.cammy.cammyui.adapters.listeners.TableViewClickListener
 import com.cammy.cammyui.fragments.BaseFragment
 import com.cammy.cammyui.models.ItemType
@@ -24,12 +22,9 @@ import com.cammy.cammyui.models.Section
 import com.cammy.cammyui.models.TableItem
 import com.cammy.locationupdates.LocationPreferences
 import com.cammy.locationupdates.R
-import com.cammy.locationupdates.activities.GeofenceActivity
-import com.cammy.locationupdates.activities.LocationListActivity
 import com.cammy.locationupdates.dagger.AppComponent
 import com.cammy.locationupdates.dagger.AppModule
 import com.cammy.locationupdates.dagger.DaggerAppComponent
-import com.cammy.locationupdates.geofence.GeofenceUtils
 import com.cammy.locationupdates.receivers.LocationUpdatesBroadcastReceiver
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
@@ -44,12 +39,12 @@ class RootFragment: BaseFragment(), TableViewClickListener{
     override fun onTableItemClicked(p0: Int, p1: TableItem?) {
         when (p0) {
             R.id.table_item_setup_geofence -> {
-                val intent = Intent(this.context, GeofenceActivity::class.java)
-                startActivity(intent)
+                var geofenceFragment = GeofenceFragment.newInstance()
+                (activity as BaseActivity).pushFragment(geofenceFragment, GeofenceFragment.TAG)
             }
             R.id.table_item_location_history -> {
-                val intent = Intent(this.context, LocationListActivity::class.java)
-                startActivity(intent)
+                var locationListFragment = LocationListFragment.newInstance()
+                (activity as BaseActivity).pushFragment(locationListFragment, LocationListFragment.TAG)
             }
             else -> {}
         }
