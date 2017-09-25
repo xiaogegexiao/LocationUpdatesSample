@@ -37,10 +37,10 @@ repositories {
 android {
     signingConfigs {
         release {
-            keyAlias 'key1'
-            keyPassword 'password'
-            storeFile file('../release.keystore')
-            storePassword 'password'
+            storeFile file("../release.keystore")
+            storePassword "password"
+            keyAlias "key0"
+            keyPassword "password"
         }
     }
     compileSdkVersion 26
@@ -51,10 +51,10 @@ android {
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
+            zipAlignEnabled true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
@@ -70,7 +70,6 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
     compile 'com.android.support:appcompat-v7:26.1.0'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile project(':locationupdateservice')
     compile 'com.google.code.gson:gson:2.8.1'
     compile 'com.google.android.gms:play-services-maps:11.4.0'
     compile 'com.google.android.gms:play-services-location:11.4.0'

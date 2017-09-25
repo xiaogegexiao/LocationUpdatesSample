@@ -12,6 +12,7 @@
     <uses-feature android:name="android.hardware.location.network" />
 
     <application
+        android:testOnly="false"
         android:name=".MainApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
