@@ -8,7 +8,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import com.cammy.cammyui.activities.BaseActivity
 import com.cammy.cammyui.fragments.BaseFragment
 import com.cammy.locationupdates.R
@@ -27,7 +29,8 @@ import java.util.*
 /**
  * Created by xiaomei on 22/9/17.
  */
-class MapLocationFragment : BaseFragment() {
+class MapLocationFragment : BaseFragment(){
+
 
     companion object {
         val TAG = MapLocationFragment::class.simpleName

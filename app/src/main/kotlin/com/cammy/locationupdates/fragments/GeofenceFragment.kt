@@ -2,6 +2,7 @@ package com.cammy.locationupdates.fragments
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -13,7 +14,12 @@ import android.os.Handler
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v7.widget.LinearLayoutManager
+import android.text.TextUtils
+import android.util.Log
 import android.view.*
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
 import com.cammy.cammyui.activities.BaseActivity
 import com.cammy.cammyui.fragments.BaseFragment
 import com.cammy.locationupdates.LocationPreferences
@@ -34,15 +40,100 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.Circle
 import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.fragment_geofence.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONObject
 import java.io.IOException
 import java.util.*
 import javax.inject.Inject
+import javax.inject.Named
 
 /**
  * Created by xiaomei on 22/9/17.
  */
-class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnCameraMoveListener{
+class GeofenceFragment : BaseFragment(),
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        GoogleMap.OnCameraMoveListener,
+        TextView.OnEditorActionListener{
+    override fun onEditorAction(p0: TextView?, p1: Int, p2: KeyEvent?): Boolean {
+        if (p1 == EditorInfo.IME_ACTION_DONE) {
+            hideSoftKeyboard()
+            val searchLocation = search_bar.text.toString()
+            if (!TextUtils.isEmpty(searchLocation)) {
+                resolveAddressUsingGoogleMap(searchLocation)
+            }
+        }
+        return false
+    }
+
+    private fun resolveAddressUsingGoogleMap(searchLocation: String) {
+        Observable.just(searchLocation).flatMap<LatLng> { s ->
+            val request = Request.Builder()
+                    .url(String.format(GOOGLE_MAP_API, searchLocation))
+                    .build()
+            var responses: Response? = null
+
+            try {
+                responses = mOkHttpClient.newCall(request).execute()
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+
+            if (responses != null) {
+                var longitude = 0.0
+                var latitude = 0.0
+                try {
+                    val jsonData = responses.body()?.string()
+                    val Jobject = JSONObject(jsonData)
+                    val location = Jobject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location")
+                    if (location != null) {
+                        latitude = location.getDouble("lat")
+                        longitude = location.getDouble("lng")
+                    }
+
+                    Observable.just(LatLng(latitude, longitude))
+                } catch (e: Exception) {
+                    Observable.error<LatLng>(e)
+                }
+            } else {
+                Observable.error<LatLng>(IllegalArgumentException("google map response is null"))
+            }
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({ latLng ->
+            mMap?.let {
+                it.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16f))
+            }
+        }, { throwable ->
+            Log.e(TAG, throwable.message, throwable)
+            resolveAddressUsingGeocoder(searchLocation)
+        })
+    }
+
+    private fun resolveAddressUsingGeocoder(searchLocation: String): Unit {
+        val geocoder = Geocoder(activity)
+        var addressList: List<Address>?
+        try {
+            addressList = geocoder.getFromLocationName(searchLocation, 1)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            addressList = null
+        }
+
+        if (addressList != null && addressList.isNotEmpty()) {
+            val address = addressList[0]
+            mMap?.let {
+                it.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(address.latitude, address.longitude), 16f))
+            }
+        } else {
+            showErrorText("Address cannot be found")
+        }
+    }
+
     override fun onCameraMove() {
         val cameraPosition = mMap?.cameraPosition
 
@@ -79,7 +170,7 @@ class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, Go
 
     companion object {
         val TAG = GeofenceFragment::class.simpleName
-
+        private val GOOGLE_MAP_API = "http://maps.google.com/maps/api/geocode/json?address=%s&sensor=false"
         private val DEFAULT_RADIUS: Long = 150
         private val FINE_LOCATION_PERMISSION_REQUEST_CODE: Int = 0
 
@@ -96,6 +187,9 @@ class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, Go
                 .appModule(AppModule(this.context))
                 .build()
     }
+
+    @Inject @field:Named("general_okhttpclient")
+    lateinit var mOkHttpClient: OkHttpClient
 
     @Inject
     lateinit var mLocationPreferences: LocationPreferences
@@ -131,6 +225,7 @@ class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, Go
         map_view.onCreate(savedInstanceState)
         map_view.onResume()
         setUpMapIfRequired()
+        search_bar.setOnEditorActionListener(this)
 
         mLinearLayoutManager = LinearLayoutManager(context)
         var adapter = GeofenceListAdapter(context)
@@ -279,22 +374,6 @@ class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, Go
                 .strokeWidth(10f))
     }
 
-    private fun resolveAddressUsingGeocoder(searchLocation: String) {
-        val geocoder = Geocoder(context)
-        var addressList: List<Address>?
-        try {
-            addressList = geocoder.getFromLocationName(searchLocation, 1)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            addressList = null
-        }
-
-        if (addressList != null && addressList.isNotEmpty()) {
-            val address = addressList[0]
-            mMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(address.latitude, address.longitude), 16f))
-        }
-    }
-
     fun moveToLocation(geofence: GeofenceModel?, animated: Boolean) {
         safeLet(mMap, mCurrentFenceCircle, geofence, geofence?.latitude, geofence?.longitude, geofence?.radius) { googleMap, circle, geofenceModel, latitude, longitude, radius ->
             run {
@@ -388,5 +467,16 @@ class GeofenceFragment : BaseFragment(), GoogleApiClient.ConnectionCallbacks, Go
 
     fun bindView() {
         mGeofenceAdapter?.notifyDataSetChanged()
+    }
+
+
+    protected fun hideSoftKeyboard() {
+        if (activity != null) {
+            val view = activity.currentFocus
+            if (view != null) {
+                val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(view.windowToken, 0)
+            }
+        }
     }
 }
