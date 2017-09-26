@@ -447,19 +447,25 @@ class GeofenceFragment : BaseFragment(),
     }
 
     override fun onPause() {
-        map_view.onPause()
+        if (map_view != null) {
+            map_view.onPause()
+        }
         super.onPause()
         activity.unregisterReceiver(mMessageReceiver)
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
-        map_view.onSaveInstanceState(outState)
+        if (map_view != null) {
+            map_view.onSaveInstanceState(outState)
+        }
         super.onSaveInstanceState(outState)
     }
 
     override fun onLowMemory() {
         super.onLowMemory()
-        map_view.onLowMemory()
+        if (map_view != null) {
+            map_view.onLowMemory()
+        }
     }
 
     fun askForFineLoactionPermission() {
