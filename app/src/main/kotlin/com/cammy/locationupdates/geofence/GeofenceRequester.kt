@@ -11,6 +11,7 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
+import com.cammy.locationupdates.fragments.GeofenceFragment
 import com.cammy.locationupdates.models.GeofenceEvent
 import com.cammy.locationupdates.models.GeofenceModel
 import com.cammy.locationupdates.receivers.ReceiveTransitionReceiver
@@ -225,6 +226,8 @@ class GeofenceRequester(// Storage for a reference to the calling client
             }
         }
 
+        val intent = Intent(GeofenceFragment.ACTION_GEOFENCE_UPDATES)
+        mContext.sendBroadcast(intent)
         // Disconnect the location client
         requestDisconnection()
     }

@@ -12,6 +12,7 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.content.LocalBroadcastManager
 import android.util.Log
 import com.cammy.locationupdates.LocationPreferences
+import com.cammy.locationupdates.fragments.GeofenceFragment
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.common.api.ResultCallback
@@ -297,6 +298,8 @@ class GeofenceRemover
             }
         }
 
+        val intent = Intent(GeofenceFragment.ACTION_GEOFENCE_UPDATES)
+        mContext.sendBroadcast(intent)
         // Disconnect the location client
         requestDisconnection()
     }

@@ -2,8 +2,7 @@ package com.cammy.locationupdates.fragments
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.DialogInterface
+import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Address
@@ -47,6 +46,7 @@ import kotlinx.android.synthetic.main.fragment_geofence.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.util.*
@@ -91,7 +91,11 @@ class GeofenceFragment : BaseFragment(),
                 try {
                     val jsonData = responses.body()?.string()
                     val Jobject = JSONObject(jsonData)
-                    val location = Jobject.getJSONArray("results").getJSONObject(0).getJSONObject("geometry").getJSONObject("location")
+                    val ja = Jobject.getJSONArray("results")
+                    var location: JSONObject? = null
+                    if (ja.length() > 0) {
+                        location = ja.getJSONObject(0).getJSONObject("geometry").getJSONObject("location")
+                    }
                     if (location != null) {
                         latitude = location.getDouble("lat")
                         longitude = location.getDouble("lng")
@@ -173,6 +177,7 @@ class GeofenceFragment : BaseFragment(),
         private val GOOGLE_MAP_API = "http://maps.google.com/maps/api/geocode/json?address=%s&sensor=false"
         private val DEFAULT_RADIUS: Long = 150
         private val FINE_LOCATION_PERMISSION_REQUEST_CODE: Int = 0
+        val ACTION_GEOFENCE_UPDATES = "action_geofence_updates"
 
         fun newInstance(): Fragment {
             val fragment = GeofenceFragment()
@@ -277,6 +282,8 @@ class GeofenceFragment : BaseFragment(),
                                                 mGeofenceRequester.addGeofences(Arrays.asList(geofenceModel), Arrays.asList(geofenceModel))
                                                 mLocationPreferences.mGeofenceModelMap?.put(geofenceName, geofenceModel)
                                                 mLocationPreferences.save()
+                                                hideSoftKeyboard()
+                                                search_bar.text.clear()
                                             }
                                         }
                                     }
@@ -416,15 +423,33 @@ class GeofenceFragment : BaseFragment(),
         super.onStop()
     }
 
+    // handler for received Intents for the "my-event" event
+    private val mMessageReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            // Extract data included in the Intent
+            val action = intent.action
+            when (action) {
+                ACTION_GEOFENCE_UPDATES -> mHandler.post { bindView() }
+                else -> {}
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         map_view.onResume()
         bindView()
+
+        // Register mMessageReceiver to receive messages.
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(ACTION_GEOFENCE_UPDATES)
+        activity.registerReceiver(mMessageReceiver, intentFilter)
     }
 
     override fun onPause() {
         map_view.onPause()
         super.onPause()
+        activity.unregisterReceiver(mMessageReceiver)
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
@@ -466,6 +491,7 @@ class GeofenceFragment : BaseFragment(),
     }
 
     fun bindView() {
+        mGeofenceAdapter?.setItems(mLocationPreferences.mGeofenceModelMap?.values?.toList())
         mGeofenceAdapter?.notifyDataSetChanged()
     }
 
