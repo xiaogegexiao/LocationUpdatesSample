@@ -109,9 +109,6 @@ class ReceiveTransitionReceiver : BroadcastReceiver() {
                         }
                     }
                 }
-
-
-                result.resultCode = 0
                 result.finish()
             }
         }
